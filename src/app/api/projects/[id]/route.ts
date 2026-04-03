@@ -8,7 +8,7 @@ export async function PUT(
   const { id } = await params;
   const sql = getDb();
   const body = await request.json();
-  const { name, folder, description, status, commands, prompts } = body;
+  const { name, folder, description, status, category, commands, prompts } = body;
 
   const result = await sql`
     UPDATE projects SET
@@ -16,6 +16,7 @@ export async function PUT(
       folder = COALESCE(${folder}, folder),
       description = COALESCE(${description}, description),
       status = COALESCE(${status}, status),
+      category = COALESCE(${category}, category),
       commands = COALESCE(${commands ? JSON.stringify(commands) : null}::jsonb, commands),
       prompts = COALESCE(${prompts ? JSON.stringify(prompts) : null}::jsonb, prompts),
       updated_at = NOW()

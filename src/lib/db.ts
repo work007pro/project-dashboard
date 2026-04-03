@@ -14,10 +14,18 @@ export async function initDb() {
       folder TEXT NOT NULL,
       description TEXT DEFAULT '',
       status TEXT DEFAULT '開発中' CHECK (status IN ('稼働中', '開発中', '停止中')),
+      category TEXT DEFAULT '未分類',
       commands JSONB DEFAULT '[]'::jsonb,
       prompts JSONB DEFAULT '[]'::jsonb,
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW()
     )
+  `;
+  // Add category column if missing (existing DBs)
+  await sql`
+    DO $$ BEGIN
+      ALTER TABLE projects ADD COLUMN IF NOT EXISTS category TEXT DEFAULT '未分類';
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$
   `;
 }

@@ -9,6 +9,7 @@ interface Project {
   folder: string;
   description: string;
   status: string;
+  category: string;
   commands: string[];
   prompts: string[];
 }
@@ -33,6 +34,9 @@ export default function Dashboard() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
+  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
+  const [showNewCategory, setShowNewCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   const fetchProjects = useCallback(async () => {
     const params = search ? `?search=${encodeURIComponent(search)}` : '';
@@ -47,6 +51,25 @@ export default function Dashboard() {
   }, [fetchProjects]);
 
   const selected = projects.find(p => p.id === selectedId) || null;
+
+  // Group projects by category
+  const categories = projects.reduce<Record<string, Project[]>>((acc, p) => {
+    const cat = p.category || '未分類';
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(p);
+    return acc;
+  }, {});
+
+  const categoryNames = Object.keys(categories);
+
+  const toggleCategory = (cat: string) => {
+    setCollapsedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(cat)) next.delete(cat);
+      else next.add(cat);
+      return next;
+    });
+  };
 
   const updateProject = async (id: number, updates: Partial<Project>) => {
     await fetch(`/api/projects/${id}`, {
@@ -107,12 +130,23 @@ export default function Dashboard() {
         folder: formData.get('folder'),
         description: formData.get('description'),
         status: formData.get('status'),
+        category: formData.get('category'),
       }),
     });
     const newProject = await res.json();
     setShowAddForm(false);
     setSelectedId(newProject.id);
     await fetchProjects();
+  };
+
+  const handleAddCategory = () => {
+    if (newCategoryName.trim()) {
+      setNewCategoryName('');
+      setShowNewCategory(false);
+      // Category is created when a project uses it
+      // Pre-open the add form with this category
+      setShowAddForm(true);
+    }
   };
 
   if (loading) {
@@ -139,10 +173,20 @@ export default function Dashboard() {
                 <option value="開発中">開発中</option>
                 <option value="停止中">停止中</option>
               </select>
+              <input
+                name="category"
+                placeholder="カテゴリ（例: アプリ, 業務ツール）"
+                defaultValue={newCategoryName}
+                list="category-list"
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-sm focus:outline-none focus:border-blue-500"
+              />
+              <datalist id="category-list">
+                {categoryNames.map(c => <option key={c} value={c} />)}
+              </datalist>
             </div>
             <div className="flex gap-3 mt-4">
               <button type="submit" className="flex-1 py-2 bg-blue-600 hover:bg-blue-500 rounded text-sm font-medium">追加</button>
-              <button type="button" onClick={() => setShowAddForm(false)} className="flex-1 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm font-medium">キャンセル</button>
+              <button type="button" onClick={() => { setShowAddForm(false); setNewCategoryName(''); }} className="flex-1 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm font-medium">キャンセル</button>
             </div>
           </form>
         </div>
@@ -152,12 +196,14 @@ export default function Dashboard() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Project Dashboard</h1>
-          <button
-            onClick={() => setShowAddForm(true)}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded text-sm font-medium transition-colors"
-          >
-            + 新規プロジェクト
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded text-sm font-medium transition-colors"
+            >
+              + プロジェクト
+            </button>
+          </div>
         </div>
 
         {/* Ask Claude - Top Banner */}
@@ -192,7 +238,7 @@ export default function Dashboard() {
           className="w-full px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-sm mb-6 focus:outline-none focus:border-blue-500"
         />
 
-        {/* Detail Panel (shown above list when project selected) */}
+        {/* Detail Panel */}
         {selected && (
           <div className="bg-gray-900 border border-gray-800 rounded-lg p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
@@ -239,6 +285,19 @@ export default function Dashboard() {
                   削除
                 </button>
               </div>
+            </div>
+
+            {/* Category */}
+            <div className="mb-3">
+              <label className="text-xs text-gray-500 uppercase tracking-wider">カテゴリ</label>
+              <select
+                value={selected.category || '未分類'}
+                onChange={e => updateProject(selected.id, { category: e.target.value })}
+                className="block mt-1 bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500"
+              >
+                {categoryNames.map(c => <option key={c} value={c}>{c}</option>)}
+                <option value="未分類">未分類</option>
+              </select>
             </div>
 
             {/* Folder */}
@@ -320,38 +379,88 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Project List (center) */}
-        <div className="grid gap-3">
-          {projects.map(p => (
-            <button
-              key={p.id}
-              onClick={() => setSelectedId(selectedId === p.id ? null : p.id)}
-              className={`w-full text-left px-5 py-4 rounded-lg border transition-colors ${
-                selectedId === p.id
-                  ? 'bg-gray-800 border-blue-500'
-                  : 'bg-gray-900 border-gray-800 hover:bg-gray-800 hover:border-gray-700'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${statusColors[p.status] || 'bg-gray-500'}`} />
-                  <span className="font-medium truncate">{p.name}</span>
-                  <span className={`text-xs ${statusTextColors[p.status] || 'text-gray-500'}`}>{p.status}</span>
-                </div>
-                <div className="flex items-center gap-3 shrink-0 ml-4">
-                  {p.commands && p.commands.length > 0 && (
-                    <span
-                      className="text-xs text-gray-500 font-mono truncate max-w-48 hidden sm:inline"
-                    >
-                      {p.commands[0]}
+        {/* Category Groups */}
+        <div className="space-y-4">
+          {categoryNames.map(cat => {
+            const isCollapsed = collapsedCategories.has(cat);
+            const catProjects = categories[cat];
+            return (
+              <div key={cat} className="border border-gray-800 rounded-lg overflow-hidden">
+                {/* Category Header */}
+                <button
+                  onClick={() => toggleCategory(cat)}
+                  className="w-full flex items-center justify-between px-5 py-3 bg-gray-900 hover:bg-gray-800 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className={`text-gray-400 text-sm transition-transform ${isCollapsed ? '' : 'rotate-90'}`}>
+                      ▶
                     </span>
-                  )}
-                  <CopyButton text={p.commands?.[0] || `cd ~/projects/${p.folder} && claude`} />
-                </div>
+                    <span className="font-semibold text-sm">{cat}</span>
+                    <span className="text-xs text-gray-500">{catProjects.length}件</span>
+                  </div>
+                </button>
+
+                {/* Projects in category */}
+                {!isCollapsed && (
+                  <div className="divide-y divide-gray-800">
+                    {catProjects.map(p => (
+                      <button
+                        key={p.id}
+                        onClick={() => setSelectedId(selectedId === p.id ? null : p.id)}
+                        className={`w-full text-left px-5 py-3 transition-colors ${
+                          selectedId === p.id
+                            ? 'bg-gray-800 border-l-2 border-l-blue-500'
+                            : 'bg-gray-950 hover:bg-gray-900'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className={`w-2 h-2 rounded-full shrink-0 ${statusColors[p.status] || 'bg-gray-500'}`} />
+                            <span className="font-medium text-sm truncate">{p.name}</span>
+                            <span className={`text-xs ${statusTextColors[p.status] || 'text-gray-500'}`}>{p.status}</span>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0 ml-4">
+                            {p.commands && p.commands.length > 0 && (
+                              <span className="text-xs text-gray-500 font-mono truncate max-w-48 hidden sm:inline">
+                                {p.commands[0]}
+                              </span>
+                            )}
+                            <CopyButton text={p.commands?.[0] || `cd ~/projects/${p.folder} && claude`} />
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1 ml-5 truncate">{p.description}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="text-xs text-gray-500 mt-1.5 ml-5.5 truncate">{p.description}</div>
+            );
+          })}
+        </div>
+
+        {/* New Category */}
+        <div className="mt-4">
+          {showNewCategory ? (
+            <div className="flex gap-2">
+              <input
+                autoFocus
+                value={newCategoryName}
+                onChange={e => setNewCategoryName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleAddCategory()}
+                placeholder="カテゴリ名を入力..."
+                className="flex-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded text-sm focus:outline-none focus:border-blue-500"
+              />
+              <button onClick={handleAddCategory} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded text-sm font-medium">作成</button>
+              <button onClick={() => { setShowNewCategory(false); setNewCategoryName(''); }} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm font-medium">取消</button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowNewCategory(true)}
+              className="w-full py-3 border border-dashed border-gray-700 rounded-lg text-gray-500 hover:text-gray-300 hover:border-gray-500 text-sm transition-colors"
+            >
+              + 新しいカテゴリを追加
             </button>
-          ))}
+          )}
         </div>
 
         {projects.length === 0 && (

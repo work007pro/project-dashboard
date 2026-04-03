@@ -30,15 +30,16 @@ export async function POST(request: Request) {
   await initDb();
 
   const body = await request.json();
-  const { name, folder, description, status, commands, prompts } = body;
+  const { name, folder, description, status, category, commands, prompts } = body;
 
   const result = await sql`
-    INSERT INTO projects (name, folder, description, status, commands, prompts)
+    INSERT INTO projects (name, folder, description, status, category, commands, prompts)
     VALUES (
       ${name},
       ${folder},
       ${description || ''},
       ${status || '開発中'},
+      ${category || '未分類'},
       ${JSON.stringify(commands || [`cd ~/projects/${folder} && claude`])}::jsonb,
       ${JSON.stringify(prompts || [])}::jsonb
     )
