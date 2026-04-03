@@ -60,7 +60,15 @@ export default function Dashboard() {
     return acc;
   }, {});
 
-  const categoryNames = Object.keys(categories);
+  const categoryNames = Object.keys(categories).sort((a, b) => {
+    // 「このサイト」を常に一番上に
+    if (a === 'このサイト') return -1;
+    if (b === 'このサイト') return 1;
+    // 「未分類」を常に一番下に
+    if (a === '未分類') return 1;
+    if (b === '未分類') return -1;
+    return a.localeCompare(b);
+  });
 
   const toggleCategory = (cat: string) => {
     setCollapsedCategories(prev => {
