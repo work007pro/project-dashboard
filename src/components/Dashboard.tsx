@@ -298,23 +298,6 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* Ask Claude prompt copy */}
-            <div className="mb-5 p-3 bg-gray-800 rounded-lg border border-gray-700">
-              <div className="flex items-center justify-between">
-                <div className="flex-1 min-w-0 mr-3">
-                  <span className="text-xs text-gray-500 uppercase tracking-wider">Claudeに起動コマンドを聞く</span>
-                  <p className="mt-1 text-sm text-purple-400 truncate">
-                    {selected.name}の起動コマンドと開発環境のセットアップ手順を教えて...
-                  </p>
-                </div>
-                <CopyButton
-                  text={`${selected.name}の起動コマンドと開発環境のセットアップ手順を教えて。フォルダは ~/projects/${selected.folder} です。`}
-                  label="聞く"
-                  copiedLabel="Copied!"
-                />
-              </div>
-            </div>
-
             {/* Commands */}
             <ItemList
               title="起動コマンド"
@@ -364,11 +347,6 @@ export default function Dashboard() {
                     </span>
                   )}
                   <CopyButton text={p.commands?.[0] || `cd ~/projects/${p.folder} && claude`} />
-                  <CopyButton
-                    text={`${p.name}の起動コマンドと開発環境のセットアップ手順を教えて。フォルダは ~/projects/${p.folder} です。`}
-                    label="聞く"
-                    copiedLabel="Copied!"
-                  />
                 </div>
               </div>
               <div className="text-xs text-gray-500 mt-1.5 ml-5.5 truncate">{p.description}</div>
