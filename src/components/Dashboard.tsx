@@ -160,6 +160,29 @@ export default function Dashboard() {
           </button>
         </div>
 
+        {/* Ask Claude - Top Banner */}
+        <div className="mb-6 p-4 bg-purple-900/30 border border-purple-700 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="min-w-0 mr-4">
+              <h2 className="text-sm font-bold text-purple-300 mb-1">Claudeに起動コマンドを聞く</h2>
+              <p className="text-xs text-gray-400">
+                {selected
+                  ? `「${selected.name}」の起動コマンドを聞くプロンプトをコピー`
+                  : 'プロジェクトを選択してプロンプトをコピー'}
+              </p>
+            </div>
+            <CopyButton
+              text={
+                selected
+                  ? `${selected.name}の起動コマンドと開発環境のセットアップ手順を教えて。フォルダは ~/projects/${selected.folder} です。`
+                  : 'このプロジェクトの起動コマンドと開発環境のセットアップ手順を教えて。'
+              }
+              label="コピーして聞く"
+              copiedLabel="Copied!"
+            />
+          </div>
+        </div>
+
         {/* Search */}
         <input
           type="text"
