@@ -60,13 +60,15 @@ export default function Dashboard() {
     return acc;
   }, {});
 
+  const categoryOrder = ['自動化', '業務ツール'];
   const categoryNames = Object.keys(categories).sort((a, b) => {
-    // 「このサイト」を常に一番上に
-    if (a === 'このサイト') return -1;
-    if (b === 'このサイト') return 1;
-    // 「未分類」を常に一番下に
     if (a === '未分類') return 1;
     if (b === '未分類') return -1;
+    const ai = categoryOrder.indexOf(a);
+    const bi = categoryOrder.indexOf(b);
+    if (ai !== -1 && bi !== -1) return ai - bi;
+    if (ai !== -1) return -1;
+    if (bi !== -1) return 1;
     return a.localeCompare(b);
   });
 
